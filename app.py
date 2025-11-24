@@ -8,6 +8,9 @@ app = Flask(__name__)
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
+# 限流：每个用户最多3次请求（核心！）
+request_count = {}
+
 @app.route('/')
 def index():
     return jsonify({
@@ -24,12 +27,25 @@ def health():
 
 @app.route('/seckill', methods=['POST'])
 def seckill():
-    """秒杀接口 - 带日志版本"""
+    """秒杀接口 - 带限流和日志版本"""
     start_time = datetime.now()
     
     data = request.get_json() or {}
-    product_id = data.get('product_id')
     user_id = data.get('user_id')
+    product_id = data.get('product_id')
+    
+    # 【核心限流逻辑】检查用户是否已存在
+    if user_id in request_count:
+        # 检查是否超过3次限制
+        if request_count[user_id] >= 3:
+            logger.warning(f"[BLOCKED] User:{user_id} exceeded limit")
+            return jsonify({
+                "status": "error",
+                "message": "Request limit exceeded. Try later."
+            }), 429  # HTTP 429: Too Many Requests
+        request_count[user_id] += 1
+    else:
+        request_count[user_id] = 1
     
     # 记录请求日志
     logger.info(f"[SECKILL] User:{user_id} Product:{product_id} Time:{start_time}")
@@ -48,6 +64,7 @@ def seckill():
             "product_id": product_id,
             "user_id": user_id,
             "order_id": f"ORDER-{user_id}-{product_id}-{int(time.time())}",
+            "request_count": request_count[user_id],  # 显示这是第几次请求
             "response_time": f"{(datetime.now() - start_time).total_seconds()}s"
         }
     })
