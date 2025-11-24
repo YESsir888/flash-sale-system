@@ -1,7 +1,3 @@
-兄弟！**完整版README.md**来了！直接复制，一步到位！
-
----
-
 ### **【完整README.md内容】**
 
 ```markdown
@@ -87,5 +83,3 @@ Content-Type: application/json
 ## Author
 
 YESsir888 - Initial work
-```
-
